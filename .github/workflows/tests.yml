@@ -1,0 +1,52 @@
+name: E-commerce QA Automation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright browser
+        run: python -m playwright install --with-deps chromium
+
+      - name: Create report directories
+        run: mkdir -p reports test-results
+
+      - name: Run automated tests
+        run: |
+          pytest \
+            --browser chromium \
+            --html=reports/report.html \
+            --self-contained-html \
+            --tracing=retain-on-failure \
+            --screenshot=only-on-failure \
+            --output=test-results
+
+      - name: Upload test reports and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            reports/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
